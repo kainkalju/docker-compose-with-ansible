@@ -1,0 +1,17 @@
+[Unit]
+Description=%i service with docker compose
+PartOf=docker.service
+After=docker.service
+Requires=hostname-envfile.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+EnvironmentFile=/etc/default/hostname
+PassEnvironment=HOSTNAME
+WorkingDirectory=/etc/docker/compose/%i
+ExecStart=/usr/local/bin/docker-compose -p %i up -d --remove-orphans
+ExecStop=/usr/local/bin/docker-compose -p %i down
+
+[Install]
+WantedBy=multi-user.target

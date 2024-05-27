@@ -1,0 +1,69 @@
+- name: Overwrite rsyslog.conf
+  copy:
+    src: files/rsyslog.conf
+    dest: /etc/rsyslog.conf
+  notify: restart rsyslog
+
+- name: Create a /var/log/docker directory if it does not exist
+  file:
+    path: /var/log/docker
+    state: directory
+    owner: syslog
+    group: adm
+    mode: '0755'
+
+- name: Adding /etc/rsyslog.d/20-docker.conf
+  copy:
+    src: files//20-docker.conf
+    dest: /etc/rsyslog.d/20-docker.conf
+    mode: '0644'
+  notify: restart rsyslog
+
+- name: Adding /etc/rsyslog.d/10-socket-for-containers.conf
+  copy:
+    src: files/10-socket-for-containers.conf
+    dest: /etc/rsyslog.d/10-socket-for-containers.conf
+    mode: '0644'
+  notify: restart rsyslog
+
+- name: Adding systemd unit docker-dev-log.socket
+  copy:
+    src: files/docker-dev-log.socket
+    dest: /lib/systemd/system/docker-dev-log.socket
+    mode: '0644'
+  register: socket
+
+- name: Restart rsyslog with docker-dev-log.socket
+  command: systemctl reload-or-restart rsyslog docker-dev-log.socket
+  when: socket.changed
+
+- name: Enable systemd unit docker-dev-log.socket
+  systemd:
+    name: docker-dev-log.socket
+    enabled: yes
+  when: socket.changed
+
+- name: Copy daemon.json for docker
+  copy:
+    src: files/daemon.json
+    dest: /etc/docker/daemon.json
+  notify: restart docker
+
+- name: Copy daemon.json for docker
+  copy:
+    src: files/logrotate/rsyslog-docker
+    dest: /etc/logrotate.d/rsyslog-docker
+
+- name: stat /etc/cron.daily/logrotate
+  stat: path=/etc/cron.daily/logrotate
+  register: logrotate_stat
+
+- name: Move logrotate from daily to hourly
+  command: mv /etc/cron.daily/logrotate /etc/cron.hourly/logrotate
+  when: logrotate_stat.stat.exists
+
+- name: Install new systemd logrotate.timer unit
+  copy:
+    src: files/logrotate/logrotate.timer
+    dest: /etc/systemd/system/logrotate.timer
+  notify: systemd daemon-reload

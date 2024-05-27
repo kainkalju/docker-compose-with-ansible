@@ -1,0 +1,27 @@
+version: "3.7"
+services:
+  server:
+    user: 977:977
+    image: redis:6.2.6
+    volumes: 
+      - /etc/redis:/etc/redis
+      - /var/lib/redis:/var/lib/redis
+      - /var/log/redis:/var/log/redis
+    network_mode: "host"
+    command: redis-server /etc/redis/redis.conf
+    restart: unless-stopped
+  sentinel:
+    user: 977:977
+    image: redis:6.2.6
+    volumes: 
+      - /etc/redis:/etc/redis
+      - /var/log/redis:/var/log/redis
+    network_mode: "host"
+    command: redis-server /etc/redis/sentinel.conf --sentinel
+    restart: unless-stopped
+  exporter:
+    image: oliver006/redis_exporter
+    network_mode: "host"
+    environment:
+      - REDIS_ADDR=redis://127.0.0.1:6379
+    restart: unless-stopped

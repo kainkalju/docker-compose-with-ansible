@@ -1,0 +1,74 @@
+- name: Install requisite packages
+  apt:
+    pkg: 
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - git-lfs
+    state: present
+    autoclean: yes
+    update_cache: yes
+
+- name: Fetch Ubuntu distro name
+  command: 'lsb_release -cs'
+  register: lsb_release
+
+- name: Add an Apt signing key, uses whichever key is at the URL
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+
+- name: Adding docker apt repository
+  apt_repository:
+    repo: "deb https://download.docker.com/linux/ubuntu {{ lsb_release.stdout }} stable"
+    state: present
+    filename: docker
+
+- name: Install docker-ce package
+  apt:
+    pkg: 
+      - docker-ce
+      # Ubuntu 20.04 has broken docker-compose 1.25 pkg
+      # - docker-compose
+    state: present
+    autoclean: yes
+    update_cache: yes
+
+- name: Download docker-compose binary from github
+  get_url:
+    url: https://github.com/docker/compose/releases/download/1.29.1/docker-compose-Linux-x86_64
+    dest: /usr/local/bin/docker-compose
+    mode: '0755'
+
+- name: Stat /etc/systemd/system/docker-compose@.service
+  stat:
+    path: /etc/systemd/system/docker-compose@.service
+  register: p
+
+- name: Install docker-compose@.service systemd unit file
+  copy:
+    src: files/docker-compose@.service
+    dest: /etc/systemd/system/docker-compose@.service
+  when: p.stat.isreg is not defined
+
+- name: Create a /etc/docker/compose directory if it does not exist
+  file:
+    path: /etc/docker/compose
+    state: directory
+    mode: '0755'
+
+- name: Copy daemon.json for docker
+  copy:
+    src: files/daemon.json
+    dest: /etc/docker/daemon.json
+  notify: restart docker
+
+- name: adding user ubuntu to group docker
+  user:
+    name: ubuntu
+    groups: docker
+    append: yes
+
+- name: Force all notified handlers to run at this point, not waiting for normal sync points
+  meta: flush_handlers

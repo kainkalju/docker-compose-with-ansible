@@ -1,0 +1,15 @@
+{
+  "debug": true,
+  "log-driver": "local",
+  "log-opts": {
+    "compress": "true",
+    "max-file": "5",
+    "max-size": "100m"
+  },
+  "default-address-pools": [
+    {
+      "base": "172.17.0.0/16",
+      "size": 24
+    }
+  ]
+}

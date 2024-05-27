@@ -1,0 +1,21 @@
+- name: Create a compose/node-exporter directory if it does not exist
+  file:
+    path: /etc/docker/compose/node-exporter
+    state: directory
+    mode: '0755'
+
+- name: Install node-exporter docker-compose.yml
+  copy:
+    src: files/docker-compose.yml
+    dest: /etc/docker/compose/node-exporter
+
+- name: Enable docker-compose@node-exporter.service
+  systemd:
+    name: docker-compose@node-exporter.service
+    enabled: yes
+    masked: no
+
+- name: Make sure a docker-compose@node-exporter.service is running
+  systemd:
+    state: started
+    name: docker-compose@node-exporter.service

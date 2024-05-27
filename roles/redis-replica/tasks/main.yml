@@ -1,0 +1,91 @@
+- name: Install systemd hostname-envfile.service
+  copy:
+    src: files/hostname-envfile.service
+    dest: /etc/systemd/system/hostname-envfile.service
+
+- name: Make sure a hostname-envfile.service is running
+  systemd:
+    state: started
+    name: hostname-envfile.service
+    daemon_reload: yes
+
+- name: Overwrite docker-compose@.service systemd unit file
+  copy:
+    src: files/docker-compose@.service
+    dest: /etc/systemd/system/docker-compose@.service
+
+- name: Create a /etc/promtail directory if it does not exist
+  file:
+    path: /etc/promtail
+    state: directory
+    mode: '0755'
+
+- name: Install promtail/config.yml
+  copy:
+    src: files/promtail/config.yml
+    dest: /etc/promtail/config.yml
+
+- name: Ensure group 'redis' exists
+  group:
+    gid: 977
+    name: redis
+    state: present
+
+- name: Add the user 'redis'
+  user:
+    uid: 977
+    name: redis
+    comment: Redis Server
+    group: redis
+    shell: /usr/sbin/nologin
+    home: /var/lib/redis
+
+- name: Create a redis directories
+  file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+    owner: redis
+    group: redis
+  loop:
+    - /etc/redis
+    - /var/lib/redis
+    - /var/log/redis
+
+- name: Install config to /etc/redis
+  copy:
+    src: "files/{{ item }}"
+    dest: "/etc/redis/{{ item }}"
+    owner: redis
+    group: redis
+    mode: '0644'
+  loop:
+    - redis.conf
+    - sentinel.conf
+
+- name: Create a compose/redis directory if it does not exist
+  file:
+    path: /etc/docker/compose/redis
+    state: directory
+    mode: '0755'
+
+- name: Install redis docker-compose.yml
+  copy:
+    src: files/docker-compose.yml
+    dest: /etc/docker/compose/redis/docker-compose.yml
+
+- name: Make sure a docker-compose@redis.service is running
+  systemd:
+    state: started
+    name: docker-compose@redis.service
+    daemon_reload: yes
+
+- name: Enable docker-compose@redis.service
+  systemd:
+    name: docker-compose@redis.service
+    enabled: yes
+    masked: no
+
+- name: Install redis-tools package
+  apt:
+    name: redis-tools

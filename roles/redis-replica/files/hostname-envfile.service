@@ -1,0 +1,11 @@
+[Unit]
+Description=Create EnvironmentFile for HOSTNAME env variable
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/etc/default
+ExecStart=/bin/sh -c "echo 'HOSTNAME='`hostname` > /etc/default/hostname"
+
+[Install]
+WantedBy=multi-user.target

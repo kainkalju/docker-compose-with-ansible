@@ -1,0 +1,14 @@
+{
+    "debug": true,
+    "log-driver": "syslog",
+    "log-opts": {
+       "syslog-address": "unixgram:///run/docker/dev-log",
+       "tag" : "docker/{{.Name}}"
+    },
+    "default-address-pools": [
+        {
+          "base": "172.17.0.0/16",
+          "size": 24
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+- hosts:
+    - redis
+  become: yes
+  become_user: root
+  roles:
+    - docker
+    - docker-syslog
+    - node-exporter
+    - redis-replica
